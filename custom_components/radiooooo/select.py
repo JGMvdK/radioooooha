@@ -7,9 +7,11 @@ from collections.abc import Callable
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from .api import RadiooooError
 from .const import DECADES, DOMAIN, MODE_EXPLORE, MODE_ISLAND, MODE_RANDOM
 from .controller import RadiooooController
 from .entity import RadiooooEntity
@@ -48,19 +50,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
                 c, id_, "decade", "Decade",
                 options=lambda: [ANY, *map(str, DECADES)],
                 current=lambda: ANY if not c.decades else (str(c.decades[0]) if len(c.decades) == 1 else None),
-                select=lambda v: c.set_context(decades=[] if v == ANY else [int(v)]),
+                select=lambda v: c.set_context(decades=[] if v == ANY else [int(v)], mode=None if v == ANY else MODE_EXPLORE),
             ),
             RadiooooSelect(
                 c, id_, "country", "Country",
                 options=lambda: [ANY, *c.country_codes],
                 current=lambda: ANY if not c.countries else (c.countries[0] if len(c.countries) == 1 else None),
-                select=lambda v: c.set_context(countries=[] if v == ANY else [v]),
+                select=lambda v: c.set_context(countries=[] if v == ANY else [v], mode=None if v == ANY else MODE_EXPLORE),
             ),
             RadiooooSelect(
                 c, id_, "island", "Island",
                 options=lambda: [NONE, *sorted(c.island_map)],
                 current=lambda: next((n for n, i in c.island_map.items() if i == c.island), NONE),
-                select=lambda v: c.set_context(island=c.island_map.get(v, "")),
+                select=lambda v: c.set_context(island=c.island_map.get(v, ""), mode=None if v == NONE else MODE_ISLAND),
             ),
             RadiooooSelect(
                 c, id_, "output", "Output player",
@@ -112,4 +114,9 @@ class RadiooooSelect(RadiooooEntity, SelectEntity):
         return self._current()
 
     async def async_select_option(self, option: str) -> None:
+        old_output = self.controller.output
         self._select(option)
+        try:
+            await self.controller.async_apply_change(old_output)
+        except RadiooooError as err:
+            raise HomeAssistantError(str(err)) from err

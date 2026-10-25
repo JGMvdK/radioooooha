@@ -119,6 +119,19 @@ class RadiooooController:
         await self._send_to_output(track)
         self.changed()
 
+    async def async_apply_change(self, old_output: str | None) -> None:
+        """Make a context change audible now: stop the old output if it moved, then fetch a fresh track."""
+        if not self.playing:
+            return
+        if old_output and old_output != self.output:
+            await self.hass.services.async_call(
+                "media_player", "media_stop", {"entity_id": old_output}, blocking=False
+            )
+        if self.output:
+            await self.async_play()
+        else:
+            await self.async_stop()
+
     async def async_stop(self) -> None:
         self._cancel_watchers()
         self._generation += 1

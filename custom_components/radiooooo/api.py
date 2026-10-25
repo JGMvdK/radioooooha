@@ -89,6 +89,13 @@ class RadiooooClient:
             body = {"mode": MODE_EXPLORE, "isocodes": countries, "decades": decades, "moods": moods}
             track = await self._request("POST", "/play", body)
 
+        _LOGGER.info(
+            "Requested %s %s -> got %s/%s %s",
+            body["mode"], {k: v for k, v in body.items() if k != "mode"},
+            track.get("country") if isinstance(track, dict) else None,
+            track.get("decade") if isinstance(track, dict) else None,
+            track.get("title") if isinstance(track, dict) else track,
+        )
         if not isinstance(track, dict) or not track.get("links"):
             raise RadiooooError(f"no track returned for {body}: {track}")
         return track

@@ -7,7 +7,7 @@ Copy `custom_components/radiooooo` into your HA `config/custom_components/` (or 
 
 ## Entities
 - `media_player.radiooooo` — current track (title, artist, cover, country/decade/mood attributes); play / stop / next.
-- `select.radiooooo_*` — mode (random/explore/island), mood, decade, country (ISO-3), island, output player. Changes apply from the next track.
+- `select.radiooooo_*` — mode (random/explore/island), mood, decade, country (ISO-3), island, output player. Changing one while playing immediately switches to a new track; picking a country or decade switches to Explore mode, an island to Island mode.
 
 ## Service `radiooooo.play`
 ```yaml
