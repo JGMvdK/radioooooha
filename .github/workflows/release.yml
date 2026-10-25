@@ -1,0 +1,28 @@
+name: release
+
+# Publishes a GitHub release whenever the version in manifest.json changes on main,
+# which is what HACS looks at to offer updates.
+on:
+  push:
+    branches: [main]
+    paths: [custom_components/radiooooo/manifest.json]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create release if the tag is new
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(jq -r .version custom_components/radiooooo/manifest.json)
+          tag="v$version"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "$tag already released"
+          else
+            gh release create "$tag" --target "$GITHUB_SHA" --title "$tag" --generate-notes
+          fi

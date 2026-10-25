@@ -35,4 +35,4 @@ Entry points into the controller, all of which should go through `set_context` /
 ## Gotchas
 - Callbacks passed to HA helpers (`async_track_state_change_event`, `async_call_later`) must be wrapped with `@callback`/`callback(...)`; otherwise HA runs them in a worker thread and `hass.async_create_task` fails.
 - `strings.json` and `translations/en.json` must be kept identical (copy after editing).
-- Bump `version` in `manifest.json` and cut a matching GitHub release for HACS to offer updates.
+- Releasing: bump `version` in `manifest.json` and push to `main`; `.github/workflows/release.yml` creates the matching `vX.Y.Z` GitHub release that HACS needs to offer updates.
