@@ -3,10 +3,10 @@
   "name": "Radiooooo",
   "codeowners": [],
   "config_flow": true,
-  "documentation": "https://github.com/OWNER/radiooooo-ha",
+  "documentation": "https://github.com/JGMvdK/radioooooha",
   "integration_type": "service",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/OWNER/radiooooo-ha/issues",
+  "issue_tracker": "https://github.com/JGMvdK/radioooooha/issues",
   "requirements": [],
   "version": "0.1.0"
 }
