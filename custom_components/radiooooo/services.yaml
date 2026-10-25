@@ -1,0 +1,28 @@
+play:
+  fields:
+    mode:
+      selector:
+        select:
+          options: [random, explore, island]
+    moods:
+      example: "SLOW, FAST"
+      selector:
+        select:
+          multiple: true
+          options: [SLOW, FAST, WEIRD]
+    countries:
+      example: "FRA, ITA"
+      selector:
+        object:
+    decades:
+      example: "1960, 1970"
+      selector:
+        object:
+    island:
+      example: "Kids Playground"
+      selector:
+        text:
+    target:
+      selector:
+        entity:
+          domain: media_player

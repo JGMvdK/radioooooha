@@ -1,0 +1,30 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Radiooooo",
+        "description": "Log in with your Radiooooo account, or leave blank to use it anonymously.",
+        "data": { "email": "Email", "password": "Password" }
+      }
+    },
+    "error": {
+      "invalid_auth": "Login rejected by Radiooooo",
+      "cannot_connect": "Could not reach Radiooooo"
+    },
+    "abort": { "already_configured": "Radiooooo is already set up" }
+  },
+  "services": {
+    "play": {
+      "name": "Play",
+      "description": "Set the playback context and start playing on a media player. Omitted fields keep their current value; empty countries/decades mean any.",
+      "fields": {
+        "mode": { "name": "Mode", "description": "random, explore (country/decade filters) or island." },
+        "moods": { "name": "Moods", "description": "SLOW, FAST and/or WEIRD (random mode ignores WEIRD)." },
+        "countries": { "name": "Countries", "description": "ISO-3 codes, e.g. FRA." },
+        "decades": { "name": "Decades", "description": "e.g. 1960, 1970." },
+        "island": { "name": "Island", "description": "Island name or id." },
+        "target": { "name": "Target", "description": "Media player that plays the audio." }
+      }
+    }
+  }
+}
