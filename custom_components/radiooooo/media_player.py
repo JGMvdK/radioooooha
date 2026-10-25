@@ -11,6 +11,7 @@ from homeassistant.components.media_player import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.util import dt as dt_util
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .api import RadiooooError, cover_url
@@ -96,6 +97,24 @@ class RadiooooPlayer(RadiooooEntity, MediaPlayerEntity):
     @property
     def media_album_name(self) -> str | None:
         return self._track.get("album")
+
+    @property
+    def media_position(self) -> int | None:
+        if not self.controller.playing:
+            return None
+        out = self._output_state
+        if out and out.attributes.get("media_position") is not None:
+            return out.attributes["media_position"]  # the speaker knows best (pause, seek, buffering)
+        return int((dt_util.utcnow() - self.controller.track_started_at).total_seconds())
+
+    @property
+    def media_position_updated_at(self):
+        if not self.controller.playing:
+            return None
+        out = self._output_state
+        if out and out.attributes.get("media_position_updated_at") is not None:
+            return out.attributes["media_position_updated_at"]
+        return self.controller.track_started_at
 
     @property
     def media_duration(self) -> int | None:

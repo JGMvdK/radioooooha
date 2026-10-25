@@ -8,6 +8,7 @@ from collections.abc import Callable
 
 from homeassistant.core import CALLBACK_TYPE, Event, HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_send
+from homeassistant.util import dt as dt_util
 from homeassistant.helpers.event import async_call_later, async_track_state_change_event
 
 from .api import RadiooooClient, RadiooooError, cover_url, stream_url
@@ -48,6 +49,7 @@ class RadiooooController:
 
         self.track: dict | None = None
         self.playing = False
+        self.track_started_at = None  # wall-clock start of the current track, for position display
         self.error: str | None = None
 
         self._generation = 0  # bumps on every play/stop so stale callbacks self-cancel
@@ -108,13 +110,14 @@ class RadiooooController:
         self.track = track
         self.playing = True
         self._started_at = time.monotonic()
+        self.track_started_at = dt_util.utcnow()
         length = int(track.get("length") or DEFAULT_TRACK_SECONDS)
 
         self._unsub_state = async_track_state_change_event(
-            self.hass, [self.output], lambda event: self._output_changed(event, generation, length)
+            self.hass, [self.output], callback(lambda event: self._output_changed(event, generation, length))
         )
         self._unsub_timer = async_call_later(
-            self.hass, length + END_SLACK_SECONDS, lambda _now: self._advance(generation)
+            self.hass, length + END_SLACK_SECONDS, callback(lambda _now: self._advance(generation))
         )
         await self._send_to_output(track)
         self.changed()
