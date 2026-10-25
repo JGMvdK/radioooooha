@@ -170,6 +170,7 @@ class RadiooooController:
     def _output_changed(self, event: Event, generation: int, length: int) -> None:
         if generation != self._generation:
             return
+        self.changed()  # pause/volume on the output are mirrored by our media player
         new = event.data.get("new_state")
         if new is None or new.state not in STOPPED_STATES:
             return

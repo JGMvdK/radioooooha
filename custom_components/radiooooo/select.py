@@ -1,4 +1,4 @@
-"""Select entities that edit the playback context (applies from the next track)."""
+"""Select entities that edit the playback context."""
 
 from __future__ import annotations
 
@@ -8,7 +8,6 @@ from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .api import RadiooooError
@@ -50,39 +49,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
                 c, id_, "decade", "Decade",
                 options=lambda: [ANY, *map(str, DECADES)],
                 current=lambda: ANY if not c.decades else (str(c.decades[0]) if len(c.decades) == 1 else None),
-                select=lambda v: c.set_context(decades=[] if v == ANY else [int(v)], mode=None if v == ANY else MODE_EXPLORE),
+                select=lambda v: c.set_context(decades=[] if v == ANY else [int(v)], mode=None if v == ANY else MODE_EXPLORE, island="" if v != ANY else None),
             ),
             RadiooooSelect(
                 c, id_, "country", "Country",
                 options=lambda: [ANY, *c.country_codes],
                 current=lambda: ANY if not c.countries else (c.countries[0] if len(c.countries) == 1 else None),
-                select=lambda v: c.set_context(countries=[] if v == ANY else [v], mode=None if v == ANY else MODE_EXPLORE),
+                select=lambda v: c.set_context(countries=[] if v == ANY else [v], mode=None if v == ANY else MODE_EXPLORE, island="" if v != ANY else None),
             ),
             RadiooooSelect(
                 c, id_, "island", "Island",
-                options=lambda: [NONE, *sorted(c.island_map)],
+                options=lambda: [NONE, *c.island_map],
                 current=lambda: next((n for n, i in c.island_map.items() if i == c.island), NONE),
-                select=lambda v: c.set_context(island=c.island_map.get(v, ""), mode=None if v == NONE else MODE_ISLAND),
-            ),
-            RadiooooSelect(
-                c, id_, "output", "Output player",
-                # Evaluated on each state write, so players added later show up after the next change.
-                options=lambda: [
-                    NONE,
-                    *sorted(
-                        e for e in hass.states.async_entity_ids("media_player") if e != player_id(hass, id_)
-                    ),
-                ],
-                current=lambda: c.output or NONE,
-                select=lambda v: c.set_context(output="" if v == NONE else v),
+                select=lambda v: c.set_context(island=c.island_map.get(v, ""), mode=None if v == NONE else MODE_ISLAND, countries=None if v == NONE else [], decades=None if v == NONE else []),
             ),
         ]
     )
-
-
-def player_id(hass: HomeAssistant, entry_id: str) -> str | None:
-    """Entity id of our own media player, so it can't be picked as its own output."""
-    return er.async_get(hass).async_get_entity_id("media_player", DOMAIN, f"{entry_id}_player")
 
 
 def _key(labels: dict[str, str], value: str) -> str:

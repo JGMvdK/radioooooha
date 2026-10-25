@@ -29,14 +29,57 @@ class RadiooooPlayer(RadiooooEntity, MediaPlayerEntity):
         MediaPlayerEntityFeature.PLAY
         | MediaPlayerEntityFeature.STOP
         | MediaPlayerEntityFeature.NEXT_TRACK
+        | MediaPlayerEntityFeature.PAUSE
+        | MediaPlayerEntityFeature.SELECT_SOURCE
+        | MediaPlayerEntityFeature.VOLUME_SET
     )
 
     def __init__(self, controller, entry_id: str) -> None:
         super().__init__(controller, entry_id, "player")
 
     @property
+    def _output_state(self):
+        return self.hass.states.get(self.controller.output) if self.controller.output else None
+
+    @property
     def state(self) -> MediaPlayerState:
-        return MediaPlayerState.PLAYING if self.controller.playing else MediaPlayerState.IDLE
+        if not self.controller.playing:
+            return MediaPlayerState.IDLE
+        out = self._output_state
+        return MediaPlayerState.PAUSED if out and out.state == "paused" else MediaPlayerState.PLAYING
+
+    @property
+    def source_list(self) -> list[str]:
+        """Every other media player; the chosen one plays the audio."""
+        return sorted(
+            e for e in self.hass.states.async_entity_ids("media_player") if e != self.entity_id
+        )
+
+    @property
+    def source(self) -> str | None:
+        return self.controller.output or None
+
+    @property
+    def volume_level(self) -> float | None:
+        out = self._output_state
+        return out.attributes.get("volume_level") if out else None
+
+    async def async_select_source(self, source: str) -> None:
+        old_output = self.controller.output
+        self.controller.set_context(output=source)
+        await self._run(self.controller.async_apply_change(old_output))
+
+    async def async_set_volume_level(self, volume: float) -> None:
+        if self.controller.output:
+            await self._forward("volume_set", volume_level=volume)
+
+    async def async_media_pause(self) -> None:
+        await self._forward("media_pause")
+
+    async def _forward(self, service: str, **data) -> None:
+        await self.hass.services.async_call(
+            "media_player", service, {"entity_id": self.controller.output, **data}, blocking=False
+        )
 
     @property
     def _track(self) -> dict:
@@ -88,7 +131,11 @@ class RadiooooPlayer(RadiooooEntity, MediaPlayerEntity):
             raise HomeAssistantError(str(err)) from err
 
     async def async_media_play(self) -> None:
-        await self._run(self.controller.async_play())
+        out = self._output_state
+        if self.controller.playing and out and out.state == "paused":
+            await self._forward("media_play")  # resume rather than skipping to a new track
+        else:
+            await self._run(self.controller.async_play())
 
     async def async_media_next_track(self) -> None:
         await self._run(self.controller.async_play())

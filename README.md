@@ -6,8 +6,11 @@ Unofficial custom integration. Plays [Radiooooo](https://radiooooo.com) (music f
 Copy `custom_components/radiooooo` into your HA `config/custom_components/` (or add this repo to HACS as a custom repository), restart, then **Settings → Devices & services → Add integration → Radiooooo**. Email/password are optional; leave blank to use it anonymously.
 
 ## Entities
-- `media_player.radiooooo` — current track (title, artist, cover, country/decade/mood attributes); play / stop / next.
-- `select.radiooooo_*` — mode (random/explore/island), mood, decade, country (ISO-3), island, output player. Changing one while playing immediately switches to a new track; picking a country or decade switches to Explore mode, an island to Island mode.
+- `media_player.radiooooo` — current track (title, artist, cover, country/decade/mood attributes). Play, pause, stop, next and volume are forwarded to the output player; choose that player with the card's **source** menu (every other `media_player`).
+- `select.radiooooo_*` — mode, mood, decade, country (ISO-3) and island (grouped by category, e.g. `Thematic: Kids Playground`, `Top 10: #29 (07/05/21)`). Changing one while playing switches to a new track immediately.
+
+## How mode, country, decade and island interact
+Mode decides what is used: **Random** uses only mood; **Explore** uses country + decade (+ mood); **Island** uses the island (+ mood). Picking a country or decade switches to Explore and clears the island; picking an island switches to Island and clears country/decade.
 
 ## Service `radiooooo.play`
 ```yaml
