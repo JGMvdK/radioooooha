@@ -273,10 +273,15 @@ class RadiooooCard extends HTMLElement {
   }
 }
 
-customElements.define("radiooooo-card", RadiooooCard);
+// Guarded because the script can be loaded twice (HA's automatic registration plus a manually added Resource).
+if (!customElements.get("radiooooo-card")) {
+  customElements.define("radiooooo-card", RadiooooCard);
+}
 window.customCards = window.customCards || [];
-window.customCards.push({
-  type: "radiooooo-card",
-  name: "Radiooooo",
-  description: "Now playing, seek bar, mode and settings for the Radiooooo integration",
-});
+if (!window.customCards.some((c) => c.type === "radiooooo-card")) {
+  window.customCards.push({
+    type: "radiooooo-card",
+    name: "Radiooooo",
+    description: "Now playing, seek bar, mode and settings for the Radiooooo integration",
+  });
+}

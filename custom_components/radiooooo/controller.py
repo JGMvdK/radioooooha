@@ -55,6 +55,7 @@ class RadiooooController:
         self.error: str | None = None
 
         self._length = DEFAULT_TRACK_SECONDS
+        self._paused_since: float | None = None
         self._generation = 0  # bumps on every play/stop so stale callbacks self-cancel
         self._started_at = 0.0
         self._unsub_state: CALLBACK_TYPE | None = None
@@ -114,6 +115,7 @@ class RadiooooController:
         self.playing = True
         self._started_at = time.monotonic()
         self.track_started_at = dt_util.utcnow()
+        self._paused_since = None
         length = self._length = int(track.get("length") or DEFAULT_TRACK_SECONDS)
 
         self._unsub_state = async_track_state_change_event(
@@ -198,7 +200,13 @@ class RadiooooController:
             return
         self.changed()  # pause/volume on the output are mirrored by our media player
         new = event.data.get("new_state")
+        if new is not None:
+            self._track_pause(new.state, generation)
         if new is None or new.state not in STOPPED_STATES:
+            return
+        if self._paused_since is not None:
+            # Players time out of a long pause into "idle"; that's the user's pause ending, not a finished track.
+            self.hass.async_create_task(self._user_stopped(generation))
             return
         elapsed = time.monotonic() - self._started_at
         if elapsed < SWITCH_GRACE_SECONDS:
@@ -209,10 +217,28 @@ class RadiooooController:
             _LOGGER.debug("Output stopped after %.0fs of %ds; treating as user stop", elapsed, length)
             self.hass.async_create_task(self._user_stopped(generation))
 
+    def _track_pause(self, state: str, generation: int) -> None:
+        """Freeze the fallback timer while paused; on resume, shift the clocks by the time spent paused."""
+        now = time.monotonic()
+        if state == "paused" and self._paused_since is None:
+            self._paused_since = now
+            if self._unsub_timer:
+                self._unsub_timer()
+                self._unsub_timer = None
+        elif state == "playing" and self._paused_since is not None:
+            paused_for = now - self._paused_since
+            self._paused_since = None
+            self._started_at += paused_for
+            self.track_started_at += timedelta(seconds=paused_for)
+            self._arm_timer(generation, self._length - (now - self._started_at))
+
     @callback
     def _advance(self, generation: int) -> None:
         if generation != self._generation:
             return
+        out = self.hass.states.get(self.output) if self.output else None
+        if out and out.state == "paused":
+            return  # never skip a track the user paused
         self.hass.async_create_task(self._play_next_logged())
 
     async def _play_next_logged(self) -> None:

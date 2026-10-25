@@ -3,6 +3,7 @@ name: release
 # Publishes a GitHub release whenever the version in manifest.json changes on main,
 # which is what HACS looks at to offer updates.
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths: [custom_components/radiooooo/manifest.json]
