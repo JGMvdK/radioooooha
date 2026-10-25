@@ -15,7 +15,7 @@ The integration ships a Lovelace card and loads it automatically (hard-refresh t
 type: custom:radiooooo-card
 entity: media_player.radiooooo
 ```
-Buttons: cast (pick the output player), stop, play/pause, next. Clicking anywhere else on the card opens a settings modal with mode, mood, country, decade, island and output player. Home Assistant's own media dialog can't host those settings, hence the custom card.
+The card shows the cover, title and artist, a **seek bar** (drag to jump; forwarded to the output player), stop / play-pause / next, and all settings inline: mood, country, decade, island and output player. The **mode button** cycles Random → Explore → Island; hover for a tooltip. Settings the current mode doesn't use are dimmed (picking one still switches mode). Home Assistant's own media dialog can't host these settings, hence the custom card.
 
 ## How mode, country, decade and island interact
 Mode decides what is used: **Random** uses only mood; **Explore** uses country + decade (+ mood); **Island** uses the island (+ mood). Picking a country or decade switches to Explore and clears the island; picking an island switches to Island and clears country/decade.

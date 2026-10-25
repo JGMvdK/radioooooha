@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import time
+from datetime import timedelta
 from collections.abc import Callable
 
 from homeassistant.core import CALLBACK_TYPE, Event, HomeAssistant, callback
@@ -16,6 +17,7 @@ from .const import (
     DEFAULT_TRACK_SECONDS,
     END_SLACK_SECONDS,
     END_TOLERANCE_SECONDS,
+    MODE_ISLAND,
     MODE_RANDOM,
     MOODS,
     SWITCH_GRACE_SECONDS,
@@ -52,6 +54,7 @@ class RadiooooController:
         self.track_started_at = None  # wall-clock start of the current track, for position display
         self.error: str | None = None
 
+        self._length = DEFAULT_TRACK_SECONDS
         self._generation = 0  # bumps on every play/stop so stale callbacks self-cancel
         self._started_at = 0.0
         self._unsub_state: CALLBACK_TYPE | None = None
@@ -111,21 +114,41 @@ class RadiooooController:
         self.playing = True
         self._started_at = time.monotonic()
         self.track_started_at = dt_util.utcnow()
-        length = int(track.get("length") or DEFAULT_TRACK_SECONDS)
+        length = self._length = int(track.get("length") or DEFAULT_TRACK_SECONDS)
 
         self._unsub_state = async_track_state_change_event(
             self.hass, [self.output], callback(lambda event: self._output_changed(event, generation, length))
         )
-        self._unsub_timer = async_call_later(
-            self.hass, length + END_SLACK_SECONDS, callback(lambda _now: self._advance(generation))
-        )
+        self._arm_timer(generation, length)
         await self._send_to_output(track)
+        self.changed()
+
+    def _arm_timer(self, generation: int, remaining: float) -> None:
+        if self._unsub_timer:
+            self._unsub_timer()
+        self._unsub_timer = async_call_later(
+            self.hass, remaining + END_SLACK_SECONDS, callback(lambda _now: self._advance(generation))
+        )
+
+    async def async_seek(self, position: float) -> None:
+        """Seek the output player and keep our own clocks (display, end detection, fallback timer) in step."""
+        if not (self.playing and self.output):
+            return
+        position = max(0.0, min(position, self._length))
+        self._started_at = time.monotonic() - position
+        self.track_started_at = dt_util.utcnow() - timedelta(seconds=position)
+        self._arm_timer(self._generation, self._length - position)
+        await self.hass.services.async_call(
+            "media_player", "media_seek", {"entity_id": self.output, "seek_position": position}, blocking=False
+        )
         self.changed()
 
     async def async_apply_change(self, old_output: str | None) -> None:
         """Make a context change audible now: stop the old output if it moved, then fetch a fresh track."""
         if not self.playing:
             return
+        if self.mode == MODE_ISLAND and not self.island:
+            return  # nothing to play yet; keep the current track until an island is picked
         if old_output and old_output != self.output:
             await self.hass.services.async_call(
                 "media_player", "media_stop", {"entity_id": old_output}, blocking=False

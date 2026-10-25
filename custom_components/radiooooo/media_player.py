@@ -34,6 +34,7 @@ class RadiooooPlayer(RadiooooEntity, MediaPlayerEntity):
         | MediaPlayerEntityFeature.PAUSE
         | MediaPlayerEntityFeature.SELECT_SOURCE
         | MediaPlayerEntityFeature.VOLUME_SET
+        | MediaPlayerEntityFeature.SEEK
     )
 
     def __init__(self, controller, entry_id: str) -> None:
@@ -74,6 +75,9 @@ class RadiooooPlayer(RadiooooEntity, MediaPlayerEntity):
     async def async_set_volume_level(self, volume: float) -> None:
         if self.controller.output:
             await self._forward("volume_set", volume_level=volume)
+
+    async def async_media_seek(self, position: float) -> None:
+        await self.controller.async_seek(position)
 
     async def async_media_pause(self) -> None:
         await self._forward("media_pause")
