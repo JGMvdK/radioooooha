@@ -22,6 +22,7 @@ Playback flow: `async_play()` asks `RadiooooClient.next_track()` for one track, 
 Entry points into the controller, all of which should go through `set_context` / `async_apply_change`:
 - `select.py`: mode/mood/decade/country/island selects. Picking a country or decade switches mode to Explore and clears the island; picking an island switches to Island and clears country/decade. Changes made while playing fetch a new track immediately.
 - `media_player.py`: the output player is the media player's **source**; play/pause/volume are forwarded to it. Position/duration come from the output player when it reports them.
+- `www/radiooooo-card.js`: vanilla-JS Lovelace card (no build step) served by `_register_card` in `__init__.py` and auto-loaded via `add_extra_js_url`. It finds the select entities through the media player's `settings_entities` attribute, so keep that attribute in sync with the select keys. Dialogs are appended to `document.body`. Syntax check: `node --check`.
 - `radiooooo.play` service (registered in `__init__.py`, schema + `resolve_island`).
 
 ### API quirks (see `api.py`)

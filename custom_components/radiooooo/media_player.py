@@ -11,6 +11,7 @@ from homeassistant.components.media_player import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -141,6 +142,16 @@ class RadiooooPlayer(RadiooooEntity, MediaPlayerEntity):
             "output": self.controller.output,
             "mode": self.controller.mode,
             "error": self.controller.error,
+            "settings_entities": self._settings_entities(),
+        }
+
+    def _settings_entities(self) -> dict[str, str | None]:
+        """Select entity ids the radiooooo-card edits (their ids are user-renamable, so look them up)."""
+        registry = er.async_get(self.hass)
+        entry_id = self.registry_entry.config_entry_id if self.registry_entry else None
+        return {
+            key: registry.async_get_entity_id("select", DOMAIN, f"{entry_id}_{key}")
+            for key in ("mode", "mood", "country", "decade", "island")
         }
 
     async def _run(self, coro) -> None:

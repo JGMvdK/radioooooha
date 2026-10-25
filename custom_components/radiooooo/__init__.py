@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import voluptuous as vol
 
+from homeassistant.components.frontend import add_extra_js_url
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall
@@ -60,7 +64,23 @@ PLAY_SCHEMA = vol.Schema(
 )
 
 
+CARD_URL = f"/{DOMAIN}/radiooooo-card.js"
+
+
+async def _register_card(hass: HomeAssistant) -> None:
+    """Serve the bundled Lovelace card and load it in every dashboard (once per HA run)."""
+    if hass.data.get(f"{DOMAIN}_card"):
+        return
+    path = Path(__file__).parent / "www" / "radiooooo-card.js"
+    await hass.http.async_register_static_paths([StaticPathConfig(CARD_URL, str(path), False)])
+    # mtime in the query string busts the browser cache when the card changes.
+    version = int(await hass.async_add_executor_job(lambda: path.stat().st_mtime))
+    add_extra_js_url(hass, f"{CARD_URL}?v={version}")
+    hass.data[f"{DOMAIN}_card"] = True
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    await _register_card(hass)
     # Own session: the API relies on a connect.sid cookie that must not leak into HA's shared jar.
     session = async_create_clientsession(hass)
     client = RadiooooClient(session)
